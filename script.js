@@ -627,6 +627,7 @@ submitContactBtn.addEventListener('click', () => {
         sessionStorage.setItem('loggedInUser', JSON.stringify(user));
 
         renderContacts(user.contacts);
+        populateContactOptions();
 
         document.getElementById('name').value = '';
         document.getElementById('accountNumber').value = '';

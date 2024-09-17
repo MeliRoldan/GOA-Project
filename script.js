@@ -23,6 +23,7 @@ class User {
         this.cardDate= cardDate;
         this.cardAmount = this.generateRandomAmount(8000, 10000);
         this.transactions = [];
+        this.contacts = [];
     }
 
     // რენდომ ბალანსის გენერირება და მინიჭება იუზერისთვის
@@ -211,23 +212,10 @@ const menuToggler = document.getElementById('menuToggler');
 menuToggler.addEventListener('click', function () {
     if (dashboardMenu.style.display === 'none') {
         dashboardMenu.style.display = 'flex';
-        dashboardMainSection.style.marginLeft = '17%'
-        loansPage.style.marginLeft = '17%'
-        contactPage.style.marginLeft = '17%'
-        headHelpdDiv.style.marginLeft = '17%'
     } else {
         dashboardMenu.style.display = 'none';
-        dashboardMainSection.style.marginLeft = '0'
-        loansPage.style.marginLeft = '0'
-        contactPage.style.marginLeft = '0'
-        headHelpdDiv.style.marginLeft = '0'
     }
-    
 });
-
-// dashboardMenu.addEventListener('click', function() {
-    
-// });
 
 const selectCardDiv = document.getElementById('selectCardDiv');
 const customSelectCards = document.getElementById('custom-select-cards');
@@ -259,6 +247,31 @@ const customSelectContacts = document.getElementById('custom-select-contacts');
 const contactSearch = document.getElementById('contactSearch');
 const contactOptions = document.getElementById('contactOptions');
 
+function populateContactOptions() {
+    const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+
+    if (!user || !user.contacts) {
+        return;
+    }
+
+    const contactOptionsDiv = document.getElementById('contactOptions');
+    contactOptionsDiv.innerHTML = '';
+
+    user.contacts.forEach(contact => {
+        const { name, accountNumber } = contact;
+
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'option';
+        optionDiv.id = accountNumber;
+
+        const optionSpan = document.createElement('span');
+        optionSpan.textContent = name;
+
+        optionDiv.appendChild(optionSpan);
+        contactOptionsDiv.appendChild(optionDiv);
+    });
+}
+
 // კონატქტების დროფდაუნი
 selectContactDiv.addEventListener('click', function(event) {
     event.preventDefault();
@@ -289,6 +302,7 @@ contactOptions.addEventListener('click', function(event) {
     if (option) {
         const selected = option.querySelector('span').textContent;
         selectContactDiv.innerHTML = `${selected}`;
+        selectContactDiv.value = option.id;
         customSelectContacts.classList.remove('show-options');
         contactSearch.value = '';
     }
@@ -309,6 +323,8 @@ document.addEventListener('click', function(event) {
 function displayUserInfo() {
     // სესიის სტორიჯიდან წამოღება იუზერის ინფოების
     const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+
+    populateContactOptions();
     
     if (user) {
         // ბარათის მონაცემები
@@ -337,8 +353,9 @@ function displayUserInfo() {
             customSelectCards.classList.remove('show-options');
         });
 
-        // იუზერის შენახული ტრანზაქციების რენდერი
+        // იუზერის შენახული ტრანზაქციების და კონტაქტების რენდერი
         renderTransactions(user.transactions);
+        renderContacts(user.contacts);
     } else {
         window.location.href = 'index.html';
     }
@@ -373,7 +390,7 @@ function renderTransactions(transactions) {
         <span><span class="contactImg"></span></span>
         <span class="contactName">${transaction.recipient}</span>
         <span class="transacDate">${transaction.date}</span>
-        <span class="transacCard">${transaction.cardNumber}</span>
+        <span class="transacCard">${transaction.accountNumber}</span>
         <span class="transacAmount"><span class="transacOperator">-</span>$${transaction.amount}</span>
         <span><span class="transacStatus">${transaction.status}</span></span>`;
 
@@ -396,8 +413,7 @@ function renderTransactions(transactions) {
         const contactImg = newTransaction.querySelector('.contactImg');
         contactImg.textContent = initials;
 
-        const randomColor = getRandomColor();
-        contactImg.style.backgroundColor = randomColor;
+        contactImg.style.backgroundColor = transaction.recipientColor;
     });
 }
 
@@ -413,6 +429,7 @@ function formatDate(date) {
 function sendMoney() {
     const amount = document.getElementById('sendAmount').value;
     const recipient = selectContactDiv.textContent;
+    const accountNumber = selectContactDiv.value;
 
     // ველების ვალიდაცია
     if (!amount || !recipient) {
@@ -433,12 +450,16 @@ function sendMoney() {
         status = 'Declined';
     }
 
+    const recipientColor = getRandomColor();
+
     // ტრანზაქციის ობიექტის შექმნა
     const transaction = {
         recipient,
         date: formatDate(new Date()),
+        accountNumber,
         amount,
-        status: status
+        status: status,
+        recipientColor
     };
 
     // ტრანზაქციის ობიექტის დამატება იუზერის ობიექტში
@@ -473,10 +494,6 @@ logOut.addEventListener('click', (event) => {
     dashboardPage.style.display = 'none';
 })
 
-
-
-
-
 // მელი - სექციების დამალვა/გამოჩენა
 const dashboardMainSection = document.getElementById('dashboardMainSection');
 const contactPage = document.getElementById('contactPage');
@@ -490,6 +507,7 @@ contactPageLink.addEventListener('click', (event) => {
     contactPage.style.display = 'block';
     loansPage.style.display = 'none';
     headHelpdDiv.style.display = 'none';
+    dashboardMenu.style.display = 'none';
 })
 
 // დეშბორდზე გადასვლა
@@ -500,6 +518,7 @@ dashboardPageLink.addEventListener('click', (event) => {
     contactPage.style.display = 'none';
     loansPage.style.display = 'none';
     headHelpdDiv.style.display = 'none';
+    dashboardMenu.style.display = 'none';
 })
 
 // სესხებზე გადასვლა
@@ -510,6 +529,7 @@ loadPageLink.addEventListener('click', (event) => {
     contactPage.style.display = 'none';
     loansPage.style.display = 'block';
     headHelpdDiv.style.display = 'none';
+    dashboardMenu.style.display = 'none';
 })
 
 // იაკო - სესხების გვერდის ფუნქციონალი
@@ -520,7 +540,6 @@ const cancelBtn = document.getElementById('cancelLoan');
 const loanButtons = document.querySelectorAll('.loan-request-button');
 
 const confirmedLoans = new Set();
-
 
 const loanData = new Map([
     [1, { discount: '30%', description: 'მოითხოვე ავტოლიზინგი და დაზოგე თანხა' }],
@@ -565,9 +584,7 @@ loanButtons.forEach(button => {
 cancelBtn.addEventListener('click', hideModal);
 overlay.addEventListener('click', hideModal);
 
-// აიკო - კონტაქტების გვერდი და მისი ფუნქციონალი
-const contactNames = new Set();
-const contactMap = new Map();
+// აიკო - კონტაქტების გვერდი და მისი ფუნქციონალი; მელი - კონატქტების დაკავშირება იუზერის ობიექტთან. რენდომ ფერები და შენახვა
 
 const addContactBtn = document.getElementById('addContactBtn');
 const contactForm = document.getElementById('contactForm');
@@ -578,18 +595,85 @@ addContactBtn.addEventListener('click', () => {
     contactForm.style.display = contactForm.style.display === 'none' ? 'block' : 'none';
 });
 
+document.getElementById('accountNumber').addEventListener('input', function() {
+    restrictCardNumberLength(this);
+});
+
 submitContactBtn.addEventListener('click', () => {
     const name = document.getElementById('name').value.trim();
     const accountNumber = document.getElementById('accountNumber').value.trim();
 
-    if (name && accountNumber) {
-        if (contactNames.has(name)) {
-            alert('Contact with this name already exists.');
-            return;
-        }
+    const accNumberRegex = /^\d{14}$/;
 
-        contactNames.add(name);
-        contactMap.set(name, { accountNumber });
+    if (!name || !accountNumber) {
+        alert('Please fill in both fields.');
+        return;
+    }
+
+    if (!accNumberRegex.test(accountNumber)) {
+        alert('Account number must be exactly 14 digits.');
+        return;
+    }
+
+    const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+
+    if (!user.contacts) {
+        user.contacts = [];
+    }
+
+    if (user.contacts.some(contact => contact.name === name)) {
+        alert('Contact with this name already exists.');
+        return;
+    }
+
+    const color = getRandomColor();
+    user.contacts.push({ name, accountNumber, color });
+
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const userIndex = users.findIndex(u => u.email === user.email);
+    users[userIndex] = user;
+    localStorage.setItem('users', JSON.stringify(users));
+    sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+
+    renderContacts(user.contacts);
+    populateContactOptions();
+
+    document.getElementById('name').value = '';
+    document.getElementById('accountNumber').value = '';
+    contactForm.style.display = 'none';
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelector('.content').addEventListener('click', function (event) {
+        if (event.target.classList.contains('delete-contact-btn')) {
+            const contactCard = event.target.closest('.contact-card');
+            const contactName = contactCard.querySelector('.contact-info p').textContent.split('\n')[0];
+
+            const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
+
+            if (!user) {
+                alert('No user is currently logged in.');
+                return;
+            }
+
+            user.contacts = user.contacts.filter(contact => contact.name !== contactName);
+
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const userIndex = users.findIndex(u => u.email === user.email);
+            users[userIndex] = user;
+            localStorage.setItem('users', JSON.stringify(users));
+            sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+
+            contactCard.remove();
+        }
+    });
+});
+
+function renderContacts(contacts) {
+    contactList.innerHTML = '';
+
+    contacts.forEach(contact => {
+        const { name, accountNumber, color} = contact;
 
         const initials = name.split(' ').map(n => n[0]).join('');
 
@@ -599,6 +683,7 @@ submitContactBtn.addEventListener('click', () => {
         const contactInitials = document.createElement('div');
         contactInitials.className = 'contact-initials';
         contactInitials.textContent = initials;
+        contactInitials.style.backgroundColor = color;
 
         const contactInfo = document.createElement('div');
         contactInfo.className = 'contact-info';
@@ -609,52 +694,31 @@ submitContactBtn.addEventListener('click', () => {
         deleteButton.textContent = '✖';
 
         contactCard.appendChild(contactInitials);
-        const randomColor = getRandomColor();
-        contactInitials.style.backgroundColor = randomColor;
         contactCard.appendChild(contactInfo);
         contactCard.appendChild(deleteButton);
 
         contactList.appendChild(contactCard);
-
-        document.getElementById('name').value = '';
-        document.getElementById('accountNumber').value = '';
-
-        contactForm.style.display = 'none';
-    } else {
-        alert('Please fill in both fields.');
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelector('.content').addEventListener('click', function (event) {
-        if (event.target.classList.contains('delete-contact-btn')) {
-            const contactCard = event.target.closest('.contact-card');
-            const contactName = contactCard.querySelector('.contact-info p').textContent.split('\n')[0];
-
-            contactNames.delete(contactName);
-            contactMap.delete(contactName);
-
-            contactCard.remove();
-        }
     });
-});
-
-
-
+}
 
 //help
-
 const help = document.getElementById('help')
 const headHelpdDiv = document.getElementById('headhelpdiv')
 help.addEventListener('click', function(){
     dashboardMainSection.style.display = 'none';
     headHelpdDiv.style.display = 'flex'
+    contactPage.style.display = 'none';
+    loansPage.style.display = 'none';
+    dashboardMenu.style.display = 'none';
 })
 
 const RegistrationPage = document.getElementById('RegistrationPage')
 RegistrationPage.addEventListener('click', function(){
     dashboardPage.style.display = 'none';
     regContainerMain.style.display = 'flex';
+    headHelpdDiv.style.display = 'none'
+    contactPage.style.display = 'none';
+    loansPage.style.display = 'none';
 })
 
 // ენის შეცვლა
@@ -825,8 +889,6 @@ const translations = {
 };
 
 function setLanguage(lang) {
-
-    
     document.querySelector('#myCard div p').textContent= translations[lang].name;
     document.querySelector('#sendMoney h3').textContent = translations[lang].sendMoneyH3;
     document.getElementById('card').textContent = translations[lang].cards;
@@ -883,7 +945,6 @@ function setLanguage(lang) {
     document.getElementById("pageLoadInstruction").textContent = translations[lang].pageLoadInstruction;
 }
 
-
 document.getElementById('langEn').addEventListener('click', () => setLanguage('en'));
 document.getElementById('langKa').addEventListener('click', () => setLanguage('ka'));
 document.getElementById('langRu').addEventListener('click', () => setLanguage('ru'));
@@ -902,5 +963,8 @@ language.addEventListener('click', function(){
 for(let element of btnlang){
     element.addEventListener('click', function(){
         languageSelector.style.display ='none'
+
+        //ხურავს მენიუს როცა ენა შეირჩევა
+        dashboardMenu.style.display = 'none'
     })
 }

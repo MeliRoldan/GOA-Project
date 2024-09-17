@@ -688,7 +688,7 @@ label[for="sendAmount"] {
 }
 
 #contactPage {
-    background-image: url('images/bastian-riccardi-Q08CNRiq3k0-unsplash.jpg');
+    background-image: url('images/guerrillabuzz-vZnlrOgRGlc-unsplash.jpg'); /* Replace with your image URL */
     background-size: cover;
     background-position: center center;
 }
@@ -820,7 +820,6 @@ label[for="sendAmount"] {
     color: #333;
     line-height: 1.6;
     display: none;
-    overflow: auto;
 }
 
 
@@ -883,12 +882,4 @@ label[for="sendAmount"] {
 
 .help-section li a:hover {
     text-decoration: underline;
-}
-
-#logo {
-    position: absolute;
-    top: 10px;
-    bottom: 0;
-    right: 50px;
-    width: 100px;
 }

@@ -23,7 +23,6 @@ class User {
         this.cardDate= cardDate;
         this.cardAmount = this.generateRandomAmount(8000, 10000);
         this.transactions = [];
-        this.contacts = [];
     }
 
     // რენდომ ბალანსის გენერირება და მინიჭება იუზერისთვის
@@ -226,6 +225,10 @@ menuToggler.addEventListener('click', function () {
     
 });
 
+// dashboardMenu.addEventListener('click', function() {
+    
+// });
+
 const selectCardDiv = document.getElementById('selectCardDiv');
 const customSelectCards = document.getElementById('custom-select-cards');
 const optionsDiv = customSelectCards.querySelector('.options');
@@ -255,32 +258,6 @@ const selectContactDiv = document.getElementById('selectContactDiv');
 const customSelectContacts = document.getElementById('custom-select-contacts');
 const contactSearch = document.getElementById('contactSearch');
 const contactOptions = document.getElementById('contactOptions');
-
-function populateContactOptions() {
-    const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
-
-    if (!user || !user.contacts) {
-        return; // No contacts to display
-    }
-
-    const contactOptionsDiv = document.getElementById('contactOptions');
-    contactOptionsDiv.innerHTML = '';
-
-    user.contacts.forEach(contact => {
-        const { name, accountNumber } = contact;
-
-        // Create option element
-        const optionDiv = document.createElement('div');
-        optionDiv.className = 'option';
-        optionDiv.id = accountNumber;
-
-        const optionSpan = document.createElement('span');
-        optionSpan.textContent = name;
-
-        optionDiv.appendChild(optionSpan);
-        contactOptionsDiv.appendChild(optionDiv);
-    });
-}
 
 // კონატქტების დროფდაუნი
 selectContactDiv.addEventListener('click', function(event) {
@@ -312,7 +289,6 @@ contactOptions.addEventListener('click', function(event) {
     if (option) {
         const selected = option.querySelector('span').textContent;
         selectContactDiv.innerHTML = `${selected}`;
-        selectContactDiv.value = option.id;
         customSelectContacts.classList.remove('show-options');
         contactSearch.value = '';
     }
@@ -333,8 +309,6 @@ document.addEventListener('click', function(event) {
 function displayUserInfo() {
     // სესიის სტორიჯიდან წამოღება იუზერის ინფოების
     const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
-
-    populateContactOptions();
     
     if (user) {
         // ბარათის მონაცემები
@@ -363,9 +337,8 @@ function displayUserInfo() {
             customSelectCards.classList.remove('show-options');
         });
 
-        // იუზერის შენახული ტრანზაქციების და კონტაქტების რენდერი
+        // იუზერის შენახული ტრანზაქციების რენდერი
         renderTransactions(user.transactions);
-        renderContacts(user.contacts);
     } else {
         window.location.href = 'index.html';
     }
@@ -400,7 +373,7 @@ function renderTransactions(transactions) {
         <span><span class="contactImg"></span></span>
         <span class="contactName">${transaction.recipient}</span>
         <span class="transacDate">${transaction.date}</span>
-        <span class="transacCard">${transaction.accountNumber}</span>
+        <span class="transacCard">${transaction.cardNumber}</span>
         <span class="transacAmount"><span class="transacOperator">-</span>$${transaction.amount}</span>
         <span><span class="transacStatus">${transaction.status}</span></span>`;
 
@@ -440,7 +413,6 @@ function formatDate(date) {
 function sendMoney() {
     const amount = document.getElementById('sendAmount').value;
     const recipient = selectContactDiv.textContent;
-    const accountNumber = selectContactDiv.value;
 
     // ველების ვალიდაცია
     if (!amount || !recipient) {
@@ -465,7 +437,6 @@ function sendMoney() {
     const transaction = {
         recipient,
         date: formatDate(new Date()),
-        accountNumber,
         amount,
         status: status
     };
@@ -501,6 +472,10 @@ logOut.addEventListener('click', (event) => {
     regContainerMain.style.display = 'flex';
     dashboardPage.style.display = 'none';
 })
+
+
+
+
 
 // მელი - სექციების დამალვა/გამოჩენა
 const dashboardMainSection = document.getElementById('dashboardMainSection');
@@ -590,7 +565,9 @@ loanButtons.forEach(button => {
 cancelBtn.addEventListener('click', hideModal);
 overlay.addEventListener('click', hideModal);
 
-// აიკო - კონტაქტების გვერდი და მისი ფუნქციონალი; მელი - კონატქტების დაკავშირება იუზერის ობიექტთან. რენდომ ფერები და შენახვა
+// აიკო - კონტაქტების გვერდი და მისი ფუნქციონალი
+const contactNames = new Set();
+const contactMap = new Map();
 
 const addContactBtn = document.getElementById('addContactBtn');
 const contactForm = document.getElementById('contactForm');
@@ -606,31 +583,42 @@ submitContactBtn.addEventListener('click', () => {
     const accountNumber = document.getElementById('accountNumber').value.trim();
 
     if (name && accountNumber) {
-        const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
-
-        if (!user.contacts) {
-            user.contacts = [];
-        }
-
-        if (user.contacts.some(contact => contact.name === name)) {
+        if (contactNames.has(name)) {
             alert('Contact with this name already exists.');
             return;
         }
 
-        const color = getRandomColor();
-        user.contacts.push({ name, accountNumber, color});
+        contactNames.add(name);
+        contactMap.set(name, { accountNumber });
 
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        const userIndex = users.findIndex(u => u.email === user.email);
-        users[userIndex] = user;
-        localStorage.setItem('users', JSON.stringify(users));
-        sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+        const initials = name.split(' ').map(n => n[0]).join('');
 
-        renderContacts(user.contacts);
-        populateContactOptions();
+        const contactCard = document.createElement('div');
+        contactCard.className = 'contact-card';
+
+        const contactInitials = document.createElement('div');
+        contactInitials.className = 'contact-initials';
+        contactInitials.textContent = initials;
+
+        const contactInfo = document.createElement('div');
+        contactInfo.className = 'contact-info';
+        contactInfo.innerHTML = `<p>${name}</p><p>*****${accountNumber.slice(-5)}</p>`;
+
+        const deleteButton = document.createElement('span');
+        deleteButton.className = 'delete-contact-btn';
+        deleteButton.textContent = '✖';
+
+        contactCard.appendChild(contactInitials);
+        const randomColor = getRandomColor();
+        contactInitials.style.backgroundColor = randomColor;
+        contactCard.appendChild(contactInfo);
+        contactCard.appendChild(deleteButton);
+
+        contactList.appendChild(contactCard);
 
         document.getElementById('name').value = '';
         document.getElementById('accountNumber').value = '';
+
         contactForm.style.display = 'none';
     } else {
         alert('Please fill in both fields.');
@@ -643,75 +631,30 @@ document.addEventListener('DOMContentLoaded', function () {
             const contactCard = event.target.closest('.contact-card');
             const contactName = contactCard.querySelector('.contact-info p').textContent.split('\n')[0];
 
-            const user = JSON.parse(sessionStorage.getItem('loggedInUser'));
-
-            if (!user) {
-                alert('No user is currently logged in.');
-                return;
-            }
-
-            user.contacts = user.contacts.filter(contact => contact.name !== contactName);
-
-            const users = JSON.parse(localStorage.getItem('users')) || [];
-            const userIndex = users.findIndex(u => u.email === user.email);
-            users[userIndex] = user;
-            localStorage.setItem('users', JSON.stringify(users));
-            sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+            contactNames.delete(contactName);
+            contactMap.delete(contactName);
 
             contactCard.remove();
         }
     });
 });
 
-function renderContacts(contacts) {
-    contactList.innerHTML = '';
 
-    contacts.forEach(contact => {
-        const { name, accountNumber, color} = contact;
 
-        const initials = name.split(' ').map(n => n[0]).join('');
-
-        const contactCard = document.createElement('div');
-        contactCard.className = 'contact-card';
-
-        const contactInitials = document.createElement('div');
-        contactInitials.className = 'contact-initials';
-        contactInitials.textContent = initials;
-        contactInitials.style.backgroundColor = color;
-
-        const contactInfo = document.createElement('div');
-        contactInfo.className = 'contact-info';
-        contactInfo.innerHTML = `<p>${name}</p><p>*****${accountNumber.slice(-5)}</p>`;
-
-        const deleteButton = document.createElement('span');
-        deleteButton.className = 'delete-contact-btn';
-        deleteButton.textContent = '✖';
-
-        contactCard.appendChild(contactInitials);
-        contactCard.appendChild(contactInfo);
-        contactCard.appendChild(deleteButton);
-
-        contactList.appendChild(contactCard);
-    });
-}
 
 //help
+
 const help = document.getElementById('help')
 const headHelpdDiv = document.getElementById('headhelpdiv')
 help.addEventListener('click', function(){
     dashboardMainSection.style.display = 'none';
     headHelpdDiv.style.display = 'flex'
-    contactPage.style.display = 'none';
-    loansPage.style.display = 'none';
 })
 
 const RegistrationPage = document.getElementById('RegistrationPage')
 RegistrationPage.addEventListener('click', function(){
     dashboardPage.style.display = 'none';
     regContainerMain.style.display = 'flex';
-    headHelpdDiv.style.display = 'none'
-    contactPage.style.display = 'none';
-    loansPage.style.display = 'none';
 })
 
 // ენის შეცვლა

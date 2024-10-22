@@ -21,7 +21,7 @@ class User {
         this.cardNumber = cardNumber;
         this.cardType = cardType;
         this.cardDate= cardDate;
-        this.cardAmount = this.generateRandomAmount(8000, 10000);
+        this.cardAmount = this.generateRandomAmount(1000000000, 10000000000);
         this.transactions = [];
         this.contacts = [];
     }
